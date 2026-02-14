@@ -1,4 +1,5 @@
 from a_maze_ing import Maze, DIRS, OP_DIR
+import sys
 
 
 def apply_42_pattern(maze: Maze,
@@ -17,7 +18,7 @@ def apply_42_pattern(maze: Maze,
 
     if maze.width < p_width or maze.height < p_height:
         print("Error: maze too small to draw the '42' pattern.")
-        return
+        sys.exit(1)
 
     x0 = (maze.width - p_width) // 2
     y0 = (maze.height - p_height) // 2

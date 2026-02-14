@@ -128,6 +128,7 @@ def write_maze_hex(maze: Maze, output_file: str,
 def main(argv):
     from pattern import apply_42_pattern
     import maze_generator
+    from path import has_path
 
     if len(argv) != 2:
         print("Usage: python3 a_maze_ing.py config.txt")
@@ -135,6 +136,12 @@ def main(argv):
 
     data_config = load_config(argv[1])
     rng = random.Random(data_config.seed)
+
+    if data_config.exit[0] >= data_config.width or\
+       data_config.exit[1] >= data_config.height or\
+       data_config.entry[0] < 0 or data_config.entry[1] < 0:
+        print("the entry or the exit is not correct")
+        sys.exit(1)
 
     def maze_build():
         if data_config.perfect:
@@ -146,6 +153,9 @@ def main(argv):
 
     maze = maze_build()
     apply_42_pattern(maze, data_config.entry, data_config.exit)
+    while not has_path(maze, data_config.entry, data_config.exit):
+        maze = maze_build()
+        apply_42_pattern(maze, data_config.entry, data_config.exit)
 
     color_id = 0
     show_path = False
@@ -165,6 +175,10 @@ def main(argv):
 
             if choice == 1:
                 maze = maze_build()
+                apply_42_pattern(maze, data_config.entry, data_config.exit)
+                while not has_path(maze, data_config.entry, data_config.exit):
+                    maze = maze_build()
+                    apply_42_pattern(maze, data_config.entry, data_config.exit)
             elif choice == 2:
                 show_path = not show_path
             elif choice == 3:

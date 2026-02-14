@@ -53,6 +53,32 @@ def shortest_path_cells(maze: Maze,
     return path
 
 
+def has_path(maze: Maze,
+             start: tuple[int, int], goal: tuple[int, int]) -> bool:
+    w, h = maze.width, maze.height
+    sx, sy = start
+    gx, gy = goal
+
+    seen = [[False] * w for _ in range(h)]
+    q = deque([(sx, sy)])
+    seen[sy][sx] = True
+
+    while q:
+        x, y = q.popleft()
+        if (x, y) == (gx, gy):
+            return True
+
+        for d, (dx, dy) in enumerate(DIR_VECS):
+            if maze.walls[y][x][d]:
+                continue
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx]:
+                seen[ny][nx] = True
+                q.append((nx, ny))
+
+    return False
+
+
 def cells_to_directions(path: list[tuple[int, int]]) -> str:
     dirs = []
 
