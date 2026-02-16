@@ -2,10 +2,13 @@ import sys
 import random
 import ui
 from config_parsing import load_config
+import time
 
 # Directions: N, E, S, W
 DIRS: list[tuple[int, int]] = [(-1, 0), (0, 1), (1, 0), (0, -1)]
 OP_DIR: dict[int, int] = {0: 2, 1: 3, 2: 0, 3: 1}
+ANIM = True
+ANIM_DELAY = 0.01
 
 
 class Maze:
@@ -143,19 +146,62 @@ def main(argv):
         print("the entry or the exit is not correct")
         sys.exit(1)
 
+    def on_step(m):
+        if not ANIM:
+            return
+        ui.clear_screen()
+        print(render_maze_blocks(m, data_config.entry, data_config.exit,
+                                 color_id=0, show_path=False))
+        time.sleep(ANIM_DELAY)
+
+    def replay_animation(steps):
+        m = Maze(data_config.width, data_config.height)
+        for (x, y, d) in steps:
+            m.remove_wall(x, y, d)
+            on_step(m)
+        return m
+
     def maze_build():
         if data_config.perfect:
-            return maze_generator.generate_perfect_maze(
-                data_config.width, data_config.height, rng)
+            if data_config.algorithm == "dfs":
+                return maze_generator.generate_perfect_maze_dfs(
+                    data_config.width, data_config.height,
+                    rng, on_step=on_step)
+            elif data_config.algorithm == "prim":
+                return maze_generator.generate_perfect_maze_prim(
+                    data_config.width, data_config.height,
+                    rng)
+
         else:
             return maze_generator.generate_imperfect_maze(
-                data_config.width, data_config.height, rng)
+                data_config.width, data_config.height, rng,
+                data_config.algorithm)
 
-    maze = maze_build()
-    apply_42_pattern(maze, data_config.entry, data_config.exit)
-    while not has_path(maze, data_config.entry, data_config.exit):
-        maze = maze_build()
-        apply_42_pattern(maze, data_config.entry, data_config.exit)
+    def build_valid_maze_and_animate():
+        while True:
+            if data_config.perfect:
+                if data_config.algorithm == "dfs":
+                    maze, steps = maze_generator.generate_perfect_maze_dfs(
+                        data_config.width, data_config.height, rng
+                    )
+                else:
+                    maze, steps = maze_generator.generate_perfect_maze_prim(
+                        data_config.width, data_config.height, rng
+                    )
+            else:
+                maze, steps = maze_generator.generate_imperfect_maze(
+                    data_config.width, data_config.height, rng,
+                    data_config.algorithm)
+
+            apply_42_pattern(maze, data_config.entry, data_config.exit)
+
+            if has_path(maze, data_config.entry, data_config.exit):
+                # animate ONLY this successful maze
+                ui.clear_screen()
+                replay_animation(steps)
+                return maze
+
+    maze = build_valid_maze_and_animate()
 
     color_id = 0
     show_path = False
@@ -174,11 +220,7 @@ def main(argv):
             choice = ui.ask_choice()
 
             if choice == 1:
-                maze = maze_build()
-                apply_42_pattern(maze, data_config.entry, data_config.exit)
-                while not has_path(maze, data_config.entry, data_config.exit):
-                    maze = maze_build()
-                    apply_42_pattern(maze, data_config.entry, data_config.exit)
+                maze = build_valid_maze_and_animate()
             elif choice == 2:
                 show_path = not show_path
             elif choice == 3:

@@ -11,6 +11,7 @@ class Config:
     exit: tuple[int, int]
     output_file: str
     perfect: bool
+    algorithm: str
     seed: Optional[int] = None
 
 
@@ -32,6 +33,13 @@ def parse_bool(s: str) -> bool:
     raise ValueError(f"Invalid boolean: {s}")
 
 
+def parse_algorithm(s: str) -> str:
+    v = s.strip().lower()
+    if v in ("dfs") or v in ("prim"):
+        return v
+    raise ValueError(f"Invalid name: {s}")
+
+
 def load_config(file_name) -> Config:
     data: dict[str, str] = {}
 
@@ -51,7 +59,8 @@ def load_config(file_name) -> Config:
         print(f"Error: {e}")
         sys.exit(1)
 
-    for d in ["WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"]:
+    for d in ["WIDTH", "HEIGHT", "ENTRY", "EXIT",
+              "OUTPUT_FILE", "PERFECT", "ALGORITHM"]:
         if d not in data:
             print("missing data")
             sys.exit(1)
@@ -67,6 +76,7 @@ def load_config(file_name) -> Config:
             _seed = int(data["SEED"])
         else:
             _seed = None
+        _algorithm = parse_algorithm(data["ALGORITHM"])
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -78,5 +88,6 @@ def load_config(file_name) -> Config:
         exit=_exit,
         output_file=_output_file,
         perfect=_perfect,
-        seed=_seed
+        algorithm=_algorithm,
+        seed=_seed,
     )
