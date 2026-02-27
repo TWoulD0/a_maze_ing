@@ -149,6 +149,9 @@ def main(argv):
     def on_step(m):
         if not ANIM:
             return
+
+        ui.ensure_min_size_or_exit(82, 48)
+
         ui.clear_screen()
         print(render_maze_blocks(m, data_config.entry, data_config.exit,
                                  color_id=0, show_path=False))
@@ -160,22 +163,6 @@ def main(argv):
             m.remove_wall(x, y, d)
             on_step(m)
         return m
-
-    def maze_build():
-        if data_config.perfect:
-            if data_config.algorithm == "dfs":
-                return maze_generator.generate_perfect_maze_dfs(
-                    data_config.width, data_config.height,
-                    rng, on_step=on_step)
-            elif data_config.algorithm == "prim":
-                return maze_generator.generate_perfect_maze_prim(
-                    data_config.width, data_config.height,
-                    rng)
-
-        else:
-            return maze_generator.generate_imperfect_maze(
-                data_config.width, data_config.height, rng,
-                data_config.algorithm)
 
     def build_valid_maze_and_animate():
         while True:

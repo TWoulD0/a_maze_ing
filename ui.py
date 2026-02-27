@@ -1,4 +1,5 @@
 import sys
+import shutil
 
 # ANSI helpers
 RESET = "\033[0m"
@@ -33,3 +34,17 @@ def print_menu() -> None:
     print("2. Show/Hide path from entry to exit")
     print("3. Rotate maze colors")
     print("4. Quit")
+
+
+def term_size() -> tuple[int, int]:
+    s = shutil.get_terminal_size(fallback=(80, 24))
+    return s.columns, s.lines
+
+
+def ensure_min_size_or_exit(cols: int = 82, lines: int = 48) -> None:
+    c_size, l_size = term_size()
+    if c_size < cols or l_size < lines:
+        clear_screen()
+        print(f"Error: terminal too small ({c_size}x{l_size}). "
+              f"Need at least {cols}x{lines}.")
+        sys.exit(1)

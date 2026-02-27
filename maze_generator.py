@@ -51,30 +51,31 @@ def generate_perfect_maze_prim(
     maze = Maze(width, height)
     steps: list[tuple[int, int, int]] = []
 
-    in_maze = [[False for _ in range(width)] for _ in range(height)]
+    cell_visited = [[False for _ in range(width)] for _ in range(height)]
     frontier: list[tuple[int, int]] = []
 
     def add_frontier(x: int, y: int) -> None:
         for d, (dy, dx) in enumerate(DIRS):
             nx, ny = x + dx, y + dy
-            if 0 <= nx < width and 0 <= ny < height and not in_maze[ny][nx]:
+            if 0 <= nx < width and 0 <= ny < height and \
+               not cell_visited[ny][nx]:
                 frontier.append((nx, ny))
 
     # pick a random starting cell
     sx, sy = rng.randrange(width), rng.randrange(height)
-    in_maze[sy][sx] = True
+    cell_visited[sy][sx] = True
     add_frontier(sx, sy)
 
     while frontier:
         # pick a random frontier cell
         fx, fy = frontier.pop(rng.randrange(len(frontier)))
-        if in_maze[fy][fx]:
+        if cell_visited[fy][fx]:
             continue
 
         neighbors_in: list[tuple[int, int, int]] = []
         for d, (dy, dx) in enumerate(DIRS):
             nx, ny = fx + dx, fy + dy
-            if 0 <= nx < width and 0 <= ny < height and in_maze[ny][nx]:
+            if 0 <= nx < width and 0 <= ny < height and cell_visited[ny][nx]:
                 neighbors_in.append((nx, ny, d))
 
         if not neighbors_in:
@@ -85,14 +86,15 @@ def generate_perfect_maze_prim(
         maze.remove_wall(fx, fy, d)
         steps.append((fx, fy, d))
 
-        in_maze[fy][fx] = True
+        cell_visited[fy][fx] = True
         add_frontier(fx, fy)
 
     return maze, steps
 
 
 def generate_imperfect_maze(width: int, height: int, rng: random.Random,
-                            algorithm: str, extra_walls: int = 10) -> Maze:
+                            algorithm: str, extra_walls: int = 10
+                            ) -> tuple[Maze, list[tuple[int, int, int]]]:
     if algorithm == "dfs":
         maze, steps = generate_perfect_maze_dfs(width, height, rng)
     elif algorithm == "prim":

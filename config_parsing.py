@@ -62,7 +62,7 @@ def load_config(file_name) -> Config:
     for d in ["WIDTH", "HEIGHT", "ENTRY", "EXIT",
               "OUTPUT_FILE", "PERFECT", "ALGORITHM"]:
         if d not in data:
-            print("missing data")
+            print(f"missing data {d}")
             sys.exit(1)
 
     try:

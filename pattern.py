@@ -16,17 +16,12 @@ def apply_42_pattern(maze: Maze,
     p_height = len(bitmap)
     p_width = len(bitmap[0])
 
-    if maze.width < p_width or maze.height < p_height:
+    if maze.width < p_width + 2 or maze.height < p_height + 2:
         print("Error: maze too small to draw the '42' pattern.")
         sys.exit(1)
 
     x0 = (maze.width - p_width) // 2
     y0 = (maze.height - p_height) // 2
-
-    if maze.width - p_width >= 2:
-        x0 = max(1, min(x0, maze.width - p_width - 1))
-    if maze.height - p_height >= 2:
-        y0 = max(1, min(y0, maze.height - p_height - 1))
 
     def close_cell(x: int, y: int) -> None:
         maze.walls[y][x] = [True, True, True, True]
@@ -40,7 +35,7 @@ def apply_42_pattern(maze: Maze,
 
     for j, row in enumerate(bitmap):
         for i, ch in enumerate(row):
-            if ch != "1":
+            if ch == "0":
                 continue
             x, y = x0 + i, y0 + j
             if (x, y) == entry or (x, y) == exit:

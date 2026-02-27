@@ -1,9 +1,8 @@
 from collections import deque
-from a_maze_ing import Maze
+from a_maze_ing import Maze, DIRS
 from typing import Optional
 
 DIR_CHARS = ["N", "E", "S", "W"]
-DIR_VECS = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 
 def shortest_path_cells(maze: Maze,
@@ -29,11 +28,11 @@ def shortest_path_cells(maze: Maze,
         if (x, y) == (gx, gy):
             break
 
-        for d, (dx, dy) in enumerate(DIR_VECS):
+        for d, (dy, dx) in enumerate(DIRS):
             if maze.walls[y][x][d]:  # if there see the other walls
                 continue
             nx, ny = x + dx, y + dy
-            if 0 <= nx <= w and 0 <= ny <= h and prev[ny][nx] is None:
+            if 0 <= nx < w and 0 <= ny < h and prev[ny][nx] is None:
                 prev[ny][nx] = (x, y)
                 q.append((nx, ny))
 
@@ -68,7 +67,7 @@ def has_path(maze: Maze,
         if (x, y) == (gx, gy):
             return True
 
-        for d, (dx, dy) in enumerate(DIR_VECS):
+        for d, (dy, dx) in enumerate(DIRS):
             if maze.walls[y][x][d]:
                 continue
             nx, ny = x + dx, y + dy
