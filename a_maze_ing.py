@@ -1,7 +1,7 @@
 import sys
 import random
 import ui
-from config_parsing import load_config
+from parsing import parsing
 import time
 
 # Directions: N, E, S, W
@@ -32,6 +32,8 @@ class Maze:
     def remove_wall(self, x: int, y: int, d: int) -> None:
         ny = y + DIRS[d][0]
         nx = x + DIRS[d][1]
+        if (x, y) in self.pattern42 or (nx, ny) in self.pattern42:
+            return
         self.walls[y][x][d] = False
         self.walls[ny][nx][OP_DIR[d]] = False
 
@@ -40,7 +42,7 @@ def render_maze_blocks(maze: Maze, entry: tuple[int, int],
                        exit: tuple[int, int], color_id: int,
                        show_path: bool) -> str:
 
-    from path import shortest_path_cells
+    from path_finder import shortest_path
 
     if color_id >= len(ui.COLOR_SETS):
         color_id = 0
@@ -79,7 +81,7 @@ def render_maze_blocks(maze: Maze, entry: tuple[int, int],
                 grid[cy][cx - 1] = empty
 
     if show_path:
-        path = shortest_path_cells(maze, entry, exit)
+        path = shortest_path(maze, entry, exit) or []
         for (x, y) in path:
             grid[2 * y + 1][2 * x + 1] = path_cell
 
@@ -112,10 +114,23 @@ def cell_to_hex(maze: Maze, x: int, y: int) -> str:
 def write_maze_hex(maze: Maze, output_file: str,
                    entry: tuple[int, int], exit: tuple[int, int]) -> None:
 
-    from path import shortest_path_cells, cells_to_directions
+    from path_finder import shortest_path
 
-    path = shortest_path_cells(maze, entry, exit)
-    path_str = cells_to_directions(path)
+    path = shortest_path(maze, entry, exit)
+
+    path_str = ""
+    if path:
+        for i in range(len(path) - 1):
+            x1, y1 = path[i]
+            x2, y2 = path[i + 1]
+            if (x2, y2) == (x1 - 1, y1):
+                path_str += "W"
+            elif (x2, y2) == (x1 + 1, y1):
+                path_str += "E"
+            elif (x2, y2) == (x1, y1 - 1):
+                path_str += "N"
+            elif (x2, y2) == (x1, y1 + 1):
+                path_str += "S"
 
     with open(output_file, "w") as file:
         for y in range(maze.height):
@@ -128,17 +143,18 @@ def write_maze_hex(maze: Maze, output_file: str,
         file.write(path_str + "\n")
 
 
-def main(argv):
-    from pattern import apply_42_pattern
+def main(argv: list[str]) -> None:
     import maze_generator
-    from path import has_path
 
     if len(argv) != 2:
         print("Usage: python3 a_maze_ing.py config.txt")
         sys.exit(1)
 
-    data_config = load_config(argv[1])
+    data_config = parsing()
     rng = random.Random(data_config.seed)
+
+    canvas_w = 4 * data_config.width + 2
+    canvas_h = 2 * data_config.height + 10
 
     if data_config.exit[0] >= data_config.width or\
        data_config.exit[1] >= data_config.height or\
@@ -146,47 +162,45 @@ def main(argv):
         print("the entry or the exit is not correct")
         sys.exit(1)
 
-    def on_step(m):
+    def on_step(m: Maze) -> None:
         if not ANIM:
             return
 
-        ui.ensure_min_size_or_exit(82, 48)
+        ui.ensure_min_size_or_exit(canvas_w, canvas_h)
 
         ui.clear_screen()
         print(render_maze_blocks(m, data_config.entry, data_config.exit,
                                  color_id=0, show_path=False))
         time.sleep(ANIM_DELAY)
 
-    def replay_animation(steps):
+    def replay_animation(steps: list[tuple[int, int, int]]) -> Maze:
         m = Maze(data_config.width, data_config.height)
         for (x, y, d) in steps:
             m.remove_wall(x, y, d)
             on_step(m)
         return m
 
-    def build_valid_maze_and_animate():
-        while True:
-            if data_config.perfect:
-                if data_config.algorithm == "dfs":
-                    maze, steps = maze_generator.generate_perfect_maze_dfs(
-                        data_config.width, data_config.height, rng
-                    )
-                else:
-                    maze, steps = maze_generator.generate_perfect_maze_prim(
-                        data_config.width, data_config.height, rng
-                    )
+    def build_valid_maze_and_animate() -> Maze:
+        if data_config.perfect:
+            if data_config.algorithm == "dfs":
+                maze, steps = maze_generator.generate_perfect_maze_dfs(
+                    data_config.width, data_config.height,
+                    data_config.entry, data_config.exit, rng
+                )
             else:
-                maze, steps = maze_generator.generate_imperfect_maze(
-                    data_config.width, data_config.height, rng,
-                    data_config.algorithm)
+                maze, steps = maze_generator.generate_perfect_maze_prim(
+                    data_config.width, data_config.height,
+                    data_config.entry, data_config.exit, rng
+                )
+        else:
+            maze, steps = maze_generator.generate_imperfect_maze(
+                data_config.width, data_config.height,
+                data_config.entry, data_config.exit, rng,
+                data_config.algorithm)
 
-            apply_42_pattern(maze, data_config.entry, data_config.exit)
-
-            if has_path(maze, data_config.entry, data_config.exit):
-                # animate ONLY this successful maze
-                ui.clear_screen()
-                replay_animation(steps)
-                return maze
+        ui.clear_screen()
+        replay_animation(steps)
+        return maze
 
     maze = build_valid_maze_and_animate()
 
@@ -195,6 +209,7 @@ def main(argv):
 
     try:
         while True:
+            ui.ensure_min_size_or_exit(canvas_w, canvas_h)
             ui.clear_screen()
 
             write_maze_hex(maze, data_config.output_file,

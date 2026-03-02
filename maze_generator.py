@@ -3,10 +3,15 @@ import random
 
 
 def generate_perfect_maze_dfs(
-        width: int, height: int, rng: random.Random
+        width: int, height: int, entry: tuple[int, int],
+        exit: tuple[int, int], rng: random.Random
         ) -> tuple[Maze, list[tuple[int, int, int]]]:
+
+    from pattern import apply_42_pattern
     maze = Maze(width, height)
     steps: list[tuple[int, int, int]] = []
+
+    apply_42_pattern(maze, entry, exit)
 
     # false represent that cell is not visited
     cell_visited = []
@@ -17,7 +22,7 @@ def generate_perfect_maze_dfs(
         cell_visited.append(row)
 
     stack: list[tuple[int, int]] = []
-    start_x, start_y = 0, 0
+    start_x, start_y = entry
     cell_visited[start_y][start_x] = True
     stack.append((start_x, start_y))
 
@@ -29,7 +34,8 @@ def generate_perfect_maze_dfs(
             nx = x + dx
             ny = y + dy
             if 0 <= nx < width and 0 <= ny < height \
-               and not cell_visited[ny][nx]:
+               and not cell_visited[ny][nx] \
+               and (nx, ny) not in maze.pattern42:
                 neighbors.append((nx, ny, d))
 
         if not neighbors:
@@ -46,10 +52,16 @@ def generate_perfect_maze_dfs(
 
 
 def generate_perfect_maze_prim(
-        width: int, height: int, rng: random.Random
+        width: int, height: int, entry: tuple[int, int],
+        exit: tuple[int, int], rng: random.Random
         ) -> tuple[Maze, list[tuple[int, int, int]]]:
+
+    from pattern import apply_42_pattern
+
     maze = Maze(width, height)
     steps: list[tuple[int, int, int]] = []
+
+    apply_42_pattern(maze, entry, exit)
 
     cell_visited = [[False for _ in range(width)] for _ in range(height)]
     frontier: list[tuple[int, int]] = []
@@ -58,11 +70,12 @@ def generate_perfect_maze_prim(
         for d, (dy, dx) in enumerate(DIRS):
             nx, ny = x + dx, y + dy
             if 0 <= nx < width and 0 <= ny < height and \
-               not cell_visited[ny][nx]:
+               not cell_visited[ny][nx] \
+               and (nx, ny) not in maze.pattern42:
                 frontier.append((nx, ny))
 
     # pick a random starting cell
-    sx, sy = rng.randrange(width), rng.randrange(height)
+    sx, sy = entry
     cell_visited[sy][sx] = True
     add_frontier(sx, sy)
 
@@ -75,7 +88,8 @@ def generate_perfect_maze_prim(
         neighbors_in: list[tuple[int, int, int]] = []
         for d, (dy, dx) in enumerate(DIRS):
             nx, ny = fx + dx, fy + dy
-            if 0 <= nx < width and 0 <= ny < height and cell_visited[ny][nx]:
+            if 0 <= nx < width and 0 <= ny < height and cell_visited[ny][nx] \
+               and (nx, ny) not in maze.pattern42:
                 neighbors_in.append((nx, ny, d))
 
         if not neighbors_in:
@@ -92,13 +106,16 @@ def generate_perfect_maze_prim(
     return maze, steps
 
 
-def generate_imperfect_maze(width: int, height: int, rng: random.Random,
+def generate_imperfect_maze(width: int, height: int, entry: tuple[int, int],
+                            exit: tuple[int, int], rng: random.Random,
                             algorithm: str, extra_walls: int = 10
                             ) -> tuple[Maze, list[tuple[int, int, int]]]:
     if algorithm == "dfs":
-        maze, steps = generate_perfect_maze_dfs(width, height, rng)
+        maze, steps = generate_perfect_maze_dfs(width, height,
+                                                entry, exit, rng)
     elif algorithm == "prim":
-        maze, steps = generate_perfect_maze_prim(width, height, rng)
+        maze, steps = generate_perfect_maze_prim(width, height,
+                                                 entry, exit, rng)
 
     last_steps: list[tuple[int, int, int]] = []
 

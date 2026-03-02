@@ -39,5 +39,6 @@ def apply_42_pattern(maze: Maze,
                 continue
             x, y = x0 + i, y0 + j
             if (x, y) == entry or (x, y) == exit:
-                continue
+                print("Error: the entry or exit is on 42 pattern")
+                sys.exit(1)
             close_cell(x, y)
