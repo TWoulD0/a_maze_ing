@@ -23,3 +23,6 @@ lint:
 lint-strict:
 	flake8 .
 	mypy . --strict
+
+build:
+    python3 -m build

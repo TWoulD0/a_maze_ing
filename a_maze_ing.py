@@ -1,52 +1,33 @@
-import sys
-import random
-import ui
+from mazegen import Maze
+from mazegen import MazeGenerator
+from mazegen import shortest_path
 from parsing import parsing
+import sys
+import ui
 import time
 
-# Directions: N, E, S, W
-DIRS: list[tuple[int, int]] = [(-1, 0), (0, 1), (1, 0), (0, -1)]
-OP_DIR: dict[int, int] = {0: 2, 1: 3, 2: 0, 3: 1}
 ANIM = True
 ANIM_DELAY = 0.01
-
-
-class Maze:
-    def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
-        self.walls = []
-        self.pattern42: set[tuple[int, int]] = set()
-
-        # true represent that there is wall
-        for y in range(height):
-            row = []
-
-            for x in range(width):
-                cell_walls = [True, True, True, True]  # N, E, S, W
-                row.append(cell_walls)
-
-            self.walls.append(row)
-
-    # remove wall from current cell and neighbor cell
-    def remove_wall(self, x: int, y: int, d: int) -> None:
-        ny = y + DIRS[d][0]
-        nx = x + DIRS[d][1]
-        if (x, y) in self.pattern42 or (nx, ny) in self.pattern42:
-            return
-        self.walls[y][x][d] = False
-        self.walls[ny][nx][OP_DIR[d]] = False
+SYMBOLS = ["⬤ ", "██", "▒▒"]
 
 
 def render_maze_blocks(maze: Maze, entry: tuple[int, int],
                        exit: tuple[int, int], color_id: int,
+                       color_id42: int, symbols_id: int,
                        show_path: bool) -> str:
 
-    from path_finder import shortest_path
-
+    """Render the maze as a coloured block string for terminal display."""
     if color_id >= len(ui.COLOR_SETS):
         color_id = 0
     wall_color, mark_color, path_color = ui.COLOR_SETS[color_id]
+
+    if color_id42 >= len(ui.COLOR_42_SETS):
+        color_id42 = 0
+    _42_color = ui.COLOR_42_SETS[color_id42]
+
+    if symbols_id >= len(SYMBOLS):
+        symbols_id = 0
+    symbol = SYMBOLS[symbols_id]
 
     WIDTH = maze.width
     HEIGHT = maze.height
@@ -65,8 +46,7 @@ def render_maze_blocks(maze: Maze, entry: tuple[int, int],
             cy = 2 * y + 1
             cx = 2 * x + 1
             if (x, y) in getattr(maze, "pattern42"):
-                num_color = "\033[38;5;7m"
-                grid[cy][cx] = num_color + "██" + ui.RESET
+                grid[cy][cx] = _42_color + "██" + ui.RESET
 
             else:
                 grid[cy][cx] = empty
@@ -88,8 +68,8 @@ def render_maze_blocks(maze: Maze, entry: tuple[int, int],
     entry_x, entry_y = entry
     exit_x, exit_y = exit
 
-    grid[2 * entry_y + 1][2 * entry_x + 1] = mark_color + "⬤ " + ui.RESET
-    grid[2 * exit_y + 1][2 * exit_x + 1] = mark_color + "⬤ " + ui.RESET
+    grid[2 * entry_y + 1][2 * entry_x + 1] = mark_color + symbol + ui.RESET
+    grid[2 * exit_y + 1][2 * exit_x + 1] = mark_color + symbol + ui.RESET
 
     lines = []
     for row in grid:
@@ -106,6 +86,7 @@ def render_maze_blocks(maze: Maze, entry: tuple[int, int],
 
 
 def cell_to_hex(maze: Maze, x: int, y: int) -> str:
+    """Encode a single cell's walls as one hexadecimal character."""
     n, e, s, w = maze.walls[y][x]
     value = (int(n) << 0) | (int(e) << 1) | (int(s) << 2) | (int(w) << 3)
     return format(value, "x")
@@ -113,9 +94,7 @@ def cell_to_hex(maze: Maze, x: int, y: int) -> str:
 
 def write_maze_hex(maze: Maze, output_file: str,
                    entry: tuple[int, int], exit: tuple[int, int]) -> None:
-
-    from path_finder import shortest_path
-
+    """Write the maze to a file in the required hexadecimal format."""
     path = shortest_path(maze, entry, exit)
 
     path_str = ""
@@ -143,15 +122,22 @@ def write_maze_hex(maze: Maze, output_file: str,
         file.write(path_str + "\n")
 
 
-def main(argv: list[str]) -> None:
-    import maze_generator
+def get_path_length(maze: Maze, entry: tuple[int, int],
+                    exit: tuple[int, int]) -> int:
+    """Return the number of steps in the shortest path, or 0 if none."""
+    path = shortest_path(maze, entry, exit)
+    if path is None:
+        return 0
+    return len(path) - 1
 
+
+def main(argv: list[str]) -> None:
+    """Run the A-Maze-ing application."""
     if len(argv) != 2:
         print("Usage: python3 a_maze_ing.py config.txt")
         sys.exit(1)
 
     data_config = parsing()
-    rng = random.Random(data_config.seed)
 
     canvas_w = 4 * data_config.width + 2
     canvas_h = 2 * data_config.height + 10
@@ -170,7 +156,8 @@ def main(argv: list[str]) -> None:
 
         ui.clear_screen()
         print(render_maze_blocks(m, data_config.entry, data_config.exit,
-                                 color_id=0, show_path=False))
+                                 color_id=0, color_id42=0, symbols_id=0,
+                                 show_path=False))
         time.sleep(ANIM_DELAY)
 
     def replay_animation(steps: list[tuple[int, int, int]]) -> Maze:
@@ -180,32 +167,23 @@ def main(argv: list[str]) -> None:
             on_step(m)
         return m
 
-    def build_valid_maze_and_animate() -> Maze:
-        if data_config.perfect:
-            if data_config.algorithm == "dfs":
-                maze, steps = maze_generator.generate_perfect_maze_dfs(
-                    data_config.width, data_config.height,
-                    data_config.entry, data_config.exit, rng
-                )
-            else:
-                maze, steps = maze_generator.generate_perfect_maze_prim(
-                    data_config.width, data_config.height,
-                    data_config.entry, data_config.exit, rng
-                )
-        else:
-            maze, steps = maze_generator.generate_imperfect_maze(
-                data_config.width, data_config.height,
-                data_config.entry, data_config.exit, rng,
-                data_config.algorithm)
-
-        ui.clear_screen()
-        replay_animation(steps)
-        return maze
-
-    maze = build_valid_maze_and_animate()
+    generator = MazeGenerator(data_config.width, data_config.height,
+                              data_config.seed, data_config.algorithm,
+                              data_config.perfect, data_config.entry,
+                              data_config.exit)
+    maze_start_time: float = time.time()
+    maze = generator.generate()
+    replay_animation(generator._steps)
+    time_maze_gen: float = time.time() - maze_start_time
 
     color_id = 0
+    color_id42 = 0
+    symbols_id = 0
     show_path = False
+
+    solve_time: float | None = None
+    path_length: int = get_path_length(maze, data_config.entry,
+                                       data_config.exit)
 
     try:
         while True:
@@ -216,19 +194,40 @@ def main(argv: list[str]) -> None:
                            data_config.entry, data_config.exit)
 
             print(render_maze_blocks(maze, data_config.entry, data_config.exit,
-                                     color_id, show_path))
+                                     color_id, color_id42, symbols_id,
+                                     show_path))
             print()
             ui.print_menu()
+
+            ui.print_stats(time_maze_gen, solve_time, path_length)
+
             choice = ui.ask_choice()
 
             if choice == 1:
-                maze = build_valid_maze_and_animate()
+                maze_start_time = time.time()
+                maze = generator.generate()
+                replay_animation(generator._steps)
+                time_maze_gen: float = time.time() - maze_start_time
+                solve_time = None
+                show_path = False
+                path_length = get_path_length(maze, data_config.entry,
+                                              data_config.exit)
             elif choice == 2:
                 show_path = not show_path
+                if show_path and solve_time is None:
+                    solve_time = time.time() - maze_start_time
             elif choice == 3:
                 color_id += 1
                 if color_id >= len(ui.COLOR_SETS):
                     color_id = 0
+            elif choice == 4:
+                color_id42 += 1
+                if color_id42 >= len(ui.COLOR_42_SETS):
+                    color_id42 = 0
+            elif choice == 5:
+                symbols_id += 1
+                if symbols_id >= len(SYMBOLS):
+                    symbols_id = 0
             else:
                 break
 

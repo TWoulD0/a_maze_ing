@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple, Optional
 
 
 class Config:
+    """Holds all validated configuration values for the maze generator."""
     def __init__(
             self,
             height: int,
@@ -13,6 +14,7 @@ class Config:
             output_file: str,
             seed: Optional[int],
             algorithm: str) -> None:
+        """Holds all validated configuration values for the maze generator."""
         self.height = height
         self.width = width
         self.entry = entry
@@ -24,6 +26,7 @@ class Config:
 
 
 def parse_args() -> str:
+    """Read and validate the command-line argument."""
     args = len(sys.argv)
     if args != 2:
         print("Usage: python3 a_maze_ing.py <config_file>")
@@ -32,6 +35,7 @@ def parse_args() -> str:
 
 
 def read_file(config_file: str) -> List[str]:
+    """Read all lines from the given file path."""
     try:
         with open(config_file) as file:
             lines = file.readlines()
@@ -45,6 +49,7 @@ def read_file(config_file: str) -> List[str]:
 
 
 def build_config_dict(lines: List[str]) -> Dict[str, str]:
+    """Parse raw lines into a key-value dictionary."""
     config_dict: Dict[str, str] = {}
     for i, line in enumerate(lines, start=1):
         line = line.strip()
@@ -70,6 +75,7 @@ def build_config_dict(lines: List[str]) -> Dict[str, str]:
 
 
 def validate_keys(config_dict: Dict[str, str]) -> None:
+    """Ensure all mandatory keys are present in the config dictionary."""
     required: set[str] = {"WIDTH", "HEIGHT", "ENTRY", "EXIT",
                           "OUTPUT_FILE", "PERFECT", "ALGORITHM"}
     found = config_dict.keys()
@@ -80,6 +86,7 @@ def validate_keys(config_dict: Dict[str, str]) -> None:
 
 
 def parse_int(value: str, key_name: str) -> int:
+    """Parse a string as a positive integer."""
     try:
         number = int(value)
     except ValueError:
@@ -94,6 +101,7 @@ def parse_int(value: str, key_name: str) -> int:
 
 
 def pars_perfect(value: str, key_name: str) -> bool:
+    """Parse a string as a boolean (``"true"`` or ``"false"``)."""
     value = value.strip().lower()
     if value == "true":
         return True
@@ -104,6 +112,7 @@ def pars_perfect(value: str, key_name: str) -> bool:
 
 
 def parse_algorithm(value: str) -> str:
+    """Validate and normalise the algorithm name."""
     value = value.strip().lower()
 
     if value not in ("prim", "dfs"):
@@ -115,6 +124,7 @@ def parse_algorithm(value: str) -> str:
 
 def parse_coordinates(value: str, key_name: str,
                       width: int, height: int) -> Tuple[int, int]:
+    """Parse a ``"x,y"`` string and validate it against maze bounds."""
     parts = value.split(",")
     if len(parts) != 2:
         print(f"Error: '{key_name}' must be in format x,y.")
@@ -135,6 +145,7 @@ def parse_coordinates(value: str, key_name: str,
 
 
 def build_config(config_dict: Dict[str, str]) -> Config:
+    """Build and return a validated Config from the parsed dictionary."""
     height = parse_int(config_dict["HEIGHT"], "HEIGHT")
     width = parse_int(config_dict["WIDTH"], "WIDTH")
     if width * height > 40000:
@@ -178,6 +189,7 @@ def build_config(config_dict: Dict[str, str]) -> Config:
 
 
 def parsing() -> Config:
+    """Run the full parsing pipeline and return a validated Config."""
     config_file = parse_args()
     lines = read_file(config_file)
     config_dict = build_config_dict(lines)
