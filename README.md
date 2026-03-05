@@ -83,6 +83,7 @@ make build
 - Lines staring with # are ignored
 
 | Key | Description | Required |
+|---|---|---|
 | `WIDTH`       | Maze width in cells (positive integer)        | yes |
 | `HEIGHT`      | Maze height in cells (positive integer)       | yes |
 | `ENTRY`       | Entry coordinates as `x,y` (0-indexed)        | yes |
@@ -144,6 +145,7 @@ The maze generation logic is fully encapsulated in the `mazegen` Python package 
 ### What Is Reusable
 
 | Component | File | Description |
+|---|---|---|
 | `MazeGenerator` | `generator.py` | Main class — generates mazes with DFS or Prim |
 | `Maze` | `maze.py` | Data structure holding walls and the 42 pattern |
 | `shortest_path` | `solver.py` | BFS solver returning the shortest path as a list of cells |
@@ -197,6 +199,7 @@ if path:
 ### Direction Reference
 
 | Index | Direction | (dy, dx) offset |
+|---|---|---|
 | 0 | North | (-1, 0) |
 | 1 | East  | (0, +1) |
 | 2 | South | (+1, 0) |
@@ -209,6 +212,7 @@ if path:
 ### Roles
 
 | Member | Responsibilities |
+|---|---|
 | **watoumi** | Maze generation algorithms (DFS, Prim, imperfect mode), `maze.py`, `generator.py`, `pattern.py`, output file format, terminal UI (`ui.py`), animation, integration (`a_maze_ing.py`), package structure and `pyproject.toml` |
 | **aessabri** | Config parsing (`parsing.py`), BFS solver (`solver.py`), `Makefile`|
 
